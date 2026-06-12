@@ -17,7 +17,7 @@ const map = L.map('map').setView([46.8182, 8.2275], 8);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(map);
 
 const markers = L.markerClusterGroup({ chunkedLoading: true, maxClusterRadius: 80 });
-const geojsonUrl = 'https://philippschaufelberger.github.io/HistoSwiss-Schutzobjekte/Schutzobjekte.geojson';
+const geojsonUrl = 'https://philippschaufelberger.github.io/HistoPics/histopics.geojson';
 
 fetch(geojsonUrl)
   .then(response => response.json())
@@ -25,11 +25,44 @@ fetch(geojsonUrl)
     L.geoJSON(data, {
       pointToLayer: (f, latlng) => L.marker(latlng),
       onEachFeature: (f, l) => {
-        let p = f.properties;
+        const p = f.properties;
+        const lat = l.getLatLng().lat;
+        const lng = l.getLatLng().lng;
         let popup = `<b>${p.name || 'POI'}</b>`;
-        if(p.distanz_kfr) popup += `<br>📏 Distanz: ${p.distanz_kfr}`;
-        if(p.image_url) popup += `<br><img src="${p.image_url}" width="200">`;
-        if(p.target_url) popup += `<br><a href="${p.target_url}" target="_blank">🔗 Quelle</a>`;
+        
+        // Bild
+        if (p.image_url && p.image_url.trim() !== "") {
+          popup += `<br><img src="${p.image_url}" width="250">`;
+        }
+        
+        // Liste vorbereiten
+        const items = [];
+        
+        // Distanz
+        if (p.distanz_kfr && p.distanz_kfr !== "" && p.distanz_kfr !== "Keine Angabe") {
+          items.push(`📏 Distanz zur KFR: ${p.distanz_kfr}`);
+        }
+        
+        // Quelle (target_url)
+        if (p.target_url && p.target_url.trim() !== "") {
+          items.push(`<a href="${p.target_url}" target="_blank">🔗 HistoPics / HistoSwiss</a>`);
+        }
+        
+        // Formular (aus form_id)
+        if (p.form_id && p.form_id.trim() !== "") {
+          const formUrl = "https://forms.office.com/Pages/ResponsePage.aspx?id=oee1AwnLF0SeGsaGtECyxSYqCNTH3KVCvNcgoFLg2XZUMTZFRlJWRkVXQVZUOE9EVUs4MUc1NFZWUS4u&rf7c4e2f2d7d7438c8efbe1b915a05a0c=" + p.form_id;
+          items.push(`<a href="${formUrl}" target="_blank">📝 Zur Formseingabe</a>`);
+        }
+        
+        // Google Maps Link (neu)
+        const googleMapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+        items.push(`<a href="${googleMapsUrl}" target="_blank">🗺️ In Google Maps öffnen</a>`);
+        
+        // Liste einfügen
+        if (items.length > 0) {
+          popup += "<br><ul><li>" + items.join("</li><li>") + "</li></ul>";
+        }
+        
         l.bindPopup(popup);
       }
     }).eachLayer(layer => markers.addLayer(layer));
