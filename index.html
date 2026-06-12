@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>HistoSwiss – Karte</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
+    <style>#map{height:100vh;margin:0}</style>
+</head>
+<body>
+<div id="map"></div>
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script>
+const map = L.map('map').setView([46.8182, 8.2275], 8);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(map);
+
+const markers = L.markerClusterGroup({ chunkedLoading: true, maxClusterRadius: 80 });
+const geojsonUrl = 'https://philippschaufelberger.github.io/HistoSwiss-Resultate-2026-06/histoswiss_pois.geojson';
+
+fetch(geojsonUrl)
+  .then(response => response.json())
+  .then(data => {
+    L.geoJSON(data, {
+      pointToLayer: (f, latlng) => L.marker(latlng),
+      onEachFeature: (f, l) => {
+        let p = f.properties;
+        let popup = `<b>${p.name || 'POI'}</b>`;
+        if(p.distanz_kfr) popup += `<br>📏 Distanz: ${p.distanz_kfr}`;
+        if(p.image_url) popup += `<br><img src="${p.image_url}" width="200">`;
+        if(p.target_url) popup += `<br><a href="${p.target_url}" target="_blank">🔗 Quelle</a>`;
+        l.bindPopup(popup);
+      }
+    }).eachLayer(layer => markers.addLayer(layer));
+    map.addLayer(markers);
+    map.fitBounds(markers.getBounds());
+  })
+  .catch(error => {
+    document.getElementById('map').innerHTML = `<div style="color:red;padding:20px;">Fehler: ${error.message}</div>`;
+  });
+</script>
+</body>
+</html>
